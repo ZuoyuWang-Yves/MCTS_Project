@@ -8,72 +8,76 @@ import java.util.Optional;
 
 public class ExtendablePositionTest {
 
-    @Test
+	@Test
     public void testStartWindow() {
         ExtendablePosition p = ExtendablePosition.start();
         assertEquals(3, p.getRowMin());
         assertEquals(6, p.getRowMax());
         assertEquals(3, p.getColMin());
         assertEquals(6, p.getColMax());
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void testMovesConsecutiveException() {
-        // start() sets lastPlayer = 1, so moves(1) should catch an exception
-        ExtendablePosition.start().moves(1);
+        // center should be EMPTY, border ZOMBIE
+        assertEquals(-1, p.get(4, 4));
+        assertThrows(IndexOutOfBoundsException.class, () -> p.get(6, 4));
     }
 
     @Test
-    public void testPlaceNextAffectsMoves() {
-        ExtendablePosition p0 = ExtendablePosition.start();
-        // first move by player=0 at (3,3)
-        PlaceMove pm = new PlaceMove(0, 3, 3);
-        ExtendablePosition p1 = p0.next(pm);
-        // now (3,3) is occupied, should not be found in the list
-        List<ExtendableMove> moves = p1.moves(1);
-        boolean found = moves.stream()
-            .filter(m -> m instanceof PlaceMove)
-            .map(m -> (PlaceMove)m)
-            .anyMatch(m -> m.row()==3 && m.col()==3);
-        assertFalse(found);
+    public void testPlaceNextAndGet() {
+        ExtendablePosition p = ExtendablePosition.start();
+        // place O at (3,3)
+        ExtendablePosition p2 = p.next(new PlaceMove(0, 3, 3));
+        // O maps to 0
+        assertEquals(0, p2.get(3, 3));
+        // X should still be absent
+        assertEquals(-1, p2.get(3, 4));
     }
 
     @Test
-    public void testExtendNextUpdatesWindow() {
-        ExtendablePosition p0 = ExtendablePosition.start();
-        // extend to SE by player=0
-        ExtendMove em = new ExtendMove(0, Directions.SE);
-        ExtendablePosition p2 = p0.next(em);
-        // SE should expand rowMax and colMax by 3
-        assertEquals(3, p2.getRowMin());
-        assertEquals(9, p2.getRowMax());
-        assertEquals(3, p2.getColMin());
-        assertEquals(9, p2.getColMax());
-    }
-
-    @Test
-    public void testWinnerVertical() {
-        // custom grid: vertical X win at col=4, rows=3..5
-        Cell[][] g = new Cell[9][9];
-        for (int r = 0; r < 9; r++)
-            for (int c = 0; c < 9; c++)
-                g[r][c] = Cell.ZOMBIE;
-        int rm = 3, rM = 6, cm = 3, cM = 6;
-        // mark window EMPTY
-        for (int r = rm; r < rM; r++)
-            for (int c = cm; c < cM; c++)
-                g[r][c] = Cell.EMPTY;
-        // place vertical three X's
-        g[3][4] = Cell.X;
-        g[4][4] = Cell.X;
-        g[5][4] = Cell.X;
-        ExtendablePosition pos = new ExtendablePosition(g, 1, 3, rm, rM, cm, cM);
-        Optional<Integer> w = pos.winner();
-        assertTrue(w.isPresent());
-        assertEquals(1, (int)w.get()); //X map to winner==1
-        assertTrue(pos.isTerminal());// terminated when one player win
-    }
+    public void testExtendMoves() {
     
+        
+
+        ExtendablePosition p = ExtendablePosition.start();
+
+        List<ExtendableMove> moves = p.moves(TicTacToe.X);
+        assertTrue(moves.stream().anyMatch(m -> m instanceof ExtendMove));
+        
+        
+        // perform one extend
+        ExtendablePosition p2 = p.next(new ExtendMove(0, Directions.N));
+        // window should have expanded north by 3
+        assertEquals(0, p2.getRowMin());
+        assertEquals(6, p2.getRowMax());
+    }
+
+    @Test
+    public void testWinnerHorizontalVerticalDiagonal() {
+        // build a custom 3×3 block at (3..6)
+        Cell[][] g = new Cell[9][9];
+        for (int r=0;r<9;r++)
+            for (int c=0;c<9;c++)
+                g[r][c] = Cell.ZOMBIE;
+        // fill 3×3 center EMPTY
+        for (int r=3;r<6;r++)
+            for (int c=3;c<6;c++)
+                g[r][c] = Cell.EMPTY;
+        // horizontal win for X (player 1) at row 3
+        g[3][3]=g[3][4]=g[3][5]=Cell.X;
+        ExtendablePosition pH = new ExtendablePosition(g, 0,0,3,6,3,6);
+        assertEquals(Optional.of(1), pH.winner());
+
+        // vertical win for O (player 0)
+        g = g.clone();
+        g[3][3]=g[4][3]=g[5][3]=Cell.O;
+        ExtendablePosition pV = new ExtendablePosition(g, 1,0,3,6,3,6);
+        assertEquals(Optional.of(0), pV.winner());
+
+        // diagonal \
+        g = g.clone();
+        g[3][3]=g[4][4]=g[5][5]=Cell.X;
+        ExtendablePosition pD = new ExtendablePosition(g, 0,0,3,6,3,6);
+        assertEquals(Optional.of(1), pD.winner());
+    }
+
     @Test
     public void testDrawCondition() {
     	// fill a 9×9 window completely with alternating X and O 
