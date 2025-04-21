@@ -39,6 +39,9 @@ public class ExtendablePosition {
     public int getColMax() {
         return colMax;
     }
+    public int getMoveCount() {
+        return moveCount;
+    }
     public int get(int row, int col) {
         if (row < rowMin || row >= rowMax    
          || col < colMin || col >= colMax)  

@@ -130,7 +130,8 @@ public class MCTS {
         
         int opponent = 1 - player;
         int score = 0;
-
+        score -= 5 * (pos.getMoveCount() / 5);
+        
         // scan every sliding window (len == 3) in rows
         for (int r = rowMin; r < rowMax; r++) {
             for (int c = colMin; c + 2 < colMax; c++) {
