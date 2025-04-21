@@ -16,7 +16,7 @@ The corresponding floder contains an Extendable-Tic‑Tac‑Toe game (ETTT), wit
 
 _Place_ their mark (X or O) in any empty cell of the current available board, or
 
-_Extend_ the avilable by adding 3×3 block(s) in one of the eight compass directions, if it stays within the 9×9 bounds (with the starting board at middle); for N(North), S(South), W(West) and E (East), you extend 1 3×3 block at this direction, but for other directions like NE, you'll extend all boards that are currently not available among N(North), E(East) and NE directions, so CHOOSE WISELY!
+_Extend_ the avilable board by adding 3×3 block(s) in one of the eight compass directions, if it stays within the 9×9 bounds (with the starting board at middle); for N(North), S(South), W(West) and E (East), you extend 1 3×3 block at this direction; but for corner directions like NE (Northeast), you'll extend all currently unailable blocks within the 3 3*3 blocks located at N(North), E(East) and NE (Northeast) directions, so CHOOSE WISELY!
 
 **Board growth**: when you extend, any newly exposed cells become empty (playable).  The window slides from (rowMin..rowMax)×(colMin..colMax) to include the new block.
 
