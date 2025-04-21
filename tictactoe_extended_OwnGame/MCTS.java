@@ -103,22 +103,131 @@ public class MCTS {
 
     /** Random play to terminal, return winning player or -1 */
     private int rollout(State<ExtendableTicTacToe> state) {
-    	State<ExtendableTicTacToe> cur = state;
-        int player = cur.player();
-        while (!cur.isTerminal()) {
-            var moves = new ArrayList<>(cur.moves(player));
-            cur = cur.next(moves.get(random.nextInt(moves.size())));
-            player= 1 - player;
+    	 EState cur = (EState) state;
+    	    int player = cur.player();
+    	    int depth = 0;
+
+    	    Set<String> visited = new HashSet<>();
+    	    visited.add(cur.getPosition().normalize());
+
+
+    	    while (!cur.isTerminal() && depth < 4) {
+
+    	        // symmetry
+    	        List<Move<ExtendableTicTacToe>> all = new ArrayList<>(cur.moves(player));
+    	        List<Move<ExtendableTicTacToe>> legal = new ArrayList<>();
+    	        for (Move<ExtendableTicTacToe> m : all) {
+    	            EState nxt = (EState) cur.next(m);
+    	            String norm = nxt.getPosition().normalize();
+    	            if (!visited.contains(norm)) legal.add(m);
+    	        }
+    	        if (legal.isEmpty()) break;
+
+    	        //immediate win
+    	        Move<ExtendableTicTacToe> best = null;
+    	        for (Move<ExtendableTicTacToe> m : legal) {
+    	            EState nxt = (EState) cur.next(m);
+    	            if (nxt.winner().isPresent() && nxt.winner().get() == player) {
+    	                best = m;
+    	                break;
+    	            }
+    	        }
+
+    	        // opponent’s immediate win
+    	        if (best == null) {
+    	            int opp = 1 - player;
+    	            for (Move<ExtendableTicTacToe> m : legal) {
+    	                EState nxt = (EState) cur.next(m);
+    	                for (Move<ExtendableTicTacToe> om : nxt.moves(opp)) {
+    	                    EState on = (EState) nxt.next(om);
+    	                    if (on.winner().isPresent() && on.winner().get() == opp) {
+    	                        best = m;
+    	                        break;
+    	                    }
+    	                }
+    	                if (best != null) break;
+    	            }
+    	        }
+
+    	        // 2‑in‑a‑row threats
+    	        if (best == null) {
+    	            int opp = 1 - player;
+    	            for (Move<ExtendableTicTacToe> m : legal) {
+    	                EState nxt = (EState) cur.next(m);
+    	                if (twoInARowThreatCheck(nxt.getPosition(), opp)) {
+    	                    best = m;
+    	                    break;
+    	                }
+    	            }
+    	        }
+
+    	        // fallback random
+    	        if (best == null) {
+    	            best = legal.get(random.nextInt(legal.size()));
+    	        }
+
+    	        // advance
+    	        cur = (EState) cur.next(best);
+    	        visited.add(cur.getPosition().normalize());
+    	        player = 1 - player;
+    	        depth++;
+    	    }
+
+    	    // score bonus
+    	    int before = evaluate(state, mctsPlayer);
+    	    int after = evaluate(cur,   mctsPlayer);
+    	    int score = after - before;
+    	    if (cur.winner().isPresent() && cur.winner().get() == mctsPlayer) {
+    	        score += 100;
+    	    }
+    	    return score;
+    }
+    
+    
+    private boolean twoInARowThreatCheck(ExtendablePosition pos, int player) {
+        int r0 = pos.getRowMin(), r1 = pos.getRowMax();
+        int c0 = pos.getColMin(), c1 = pos.getColMax();
+
+        // horizontal 
+        for (int r = r0; r + 2 < r1; r++) {
+            for (int c = c0; c + 2 < c1; c++) {
+                int[] triple = { pos.get(r, c),
+                                 pos.get(r, c+1),
+                                 pos.get(r, c+2) };
+                if (twoInARow(triple, player) > 0) {
+                    return true;
+                }
+            }
         }
-        // compute classic‐style heuristic before & after
-        int preScore = evaluate(state,   mctsPlayer);
-        int postScore = evaluate(cur,     mctsPlayer);
-        int score = postScore - preScore;
-        // bonus for an outright win
-        if (cur.winner().isPresent() && cur.winner().get() == mctsPlayer) {
-            score += 100;
+
+        // vertical
+        for (int c = c0; c + 2 < c1; c++) {
+            for (int r = r0; r + 2 < r1; r++) {
+                int[] triple = { pos.get(r,   c),
+                                 pos.get(r+1, c),
+                                 pos.get(r+2, c) };
+                if (twoInARow(triple, player) > 0) {
+                    return true;
+                }
+            }
         }
-        return score;
+
+        // diagonal  (\ and /)
+        for (int r = r0; r + 2 < r1; r++) {
+            for (int c = c0; c + 2 < c1; c++) {
+                int[] d1 = { pos.get(r,   c),
+                             pos.get(r+1, c+1),
+                             pos.get(r+2, c+2) };
+                int[] d2 = { pos.get(r+2, c),
+                             pos.get(r+1, c+1),
+                             pos.get(r,   c+2) };
+                if (twoInARow(d1, player) > 0 || twoInARow(d2, player) > 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
     
   //mimic weights and formula we experimented in classic ttt
