@@ -44,8 +44,8 @@ Repeat until someone wins or the game draws.
 
 ## Customization
 
-**Simulation count:** edit the run(…) call in MCTS.java to change AI thinking depth.
+**Simulation count:** edit the run(…) call in MCTS.java to change MCTS-AI thinking depth (currently very shallow for simplicity).
 
-**Heuristics:** the playout evaluate(...) and rollout logic live in MCTS.java—tweak these to bias the AI.
+**Heuristics:** the playout evaluate(...) and rollout logic in MCTS.java are changable for you to bias the MCTS-AI (you can always teach the MC tree your favorite strategies as weights for different states, we experimented with weight increasement for the "setting up 2-way virtual winning" strategy in one experiment, check the report for details).
 
-**Window size:** the maximum 9×9 and extension block size (3) are constants in ExtendablePosition.java.
+**Window size:** the maximum 9×9 and extension block size (3) are constants in ExtendablePosition.java, which can be change to a larger board if your machine supports more complex simulations.
