@@ -9,6 +9,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import java.util.Collections;
+import java.util.Comparator;
+
 /**
  * This class represents the board of the Tic-tac-toe game.
  * It is a 3x3 matrix of 0s, 1s, and -1s for O, X, and . respectively.
@@ -274,7 +277,43 @@ public class Position {
             default -> '.';
         };
     }
+    
+    
+    /*
+     * Normalize: Do a symmetry detection for tic tac toe to reduce the duplicated process in MCTS.
+     */
+    
+    public Position normalize() {
+    	List<Position> positions = new ArrayList<>(); 
+    	
+    	Position p = this;
+    	
+    	// Rotations of original board 
+    	positions.add(p);
+    	positions.add(p.rotate()); // 90
+    	positions.add(p.rotate().rotate()); // 180
+    	positions.add(p.rotate().rotate().rotate()); // 270
+    	
+    	// Rotations of horizontal reflected board
+    	Position horReflected = this.reflect(0);
 
+    	positions.add(horReflected);
+    	positions.add(horReflected.rotate()); // 90
+    	positions.add(horReflected.rotate().rotate()); // 180
+    	positions.add(horReflected.rotate().rotate().rotate()); // 270
+    	
+    	// Rotations of vertical reflected board
+    	Position verReflected = this.reflect(1);
+    	positions.add(verReflected);
+    	positions.add(verReflected.rotate());
+    	positions.add(verReflected.rotate().rotate());
+    	positions.add(verReflected.rotate().rotate().rotate());
+    	
+    	// Choose 1 representation for all symmetric board state that are same (the smallest here)
+    	return Collections.min(positions, Comparator.comparing(Position::toString));
+    }
+
+    
     /**
      * TESTME
      *

@@ -239,7 +239,8 @@ public class MCTS {
         
         int opponent = 1 - player;
         int score = 0;
-        score -= 5 * (pos.getMoveCount() / 5);
+//        score -= 5 * (pos.getMoveCount() / 5);
+        score -= 5 * (pos.getMoveCount());
         
         // scan every sliding window (len == 3) in rows
         for (int r = rowMin; r < rowMax; r++) {
@@ -325,7 +326,17 @@ public class MCTS {
             }else {
             	Node<ExtendableTicTacToe> root = new ETTTNode(state);
                 MCTS mcts = new MCTS(root, humanFirst);
+                
+                long startTime = System.currentTimeMillis();
+                
                 state = mcts.run(10000).state();
+                
+                // End timing
+                long endTime = System.currentTimeMillis();
+
+                // Calculate and print elapsed time
+                System.out.println("MCTS move decision took " + (endTime - startTime) + " ms.");
+                
                 System.out.println("MCTS played:");
                 System.out.println(state);
             }

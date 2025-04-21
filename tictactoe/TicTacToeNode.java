@@ -65,6 +65,14 @@ public class TicTacToeNode implements Node<TicTacToe> {
             playouts += child.playouts();
         }
     }
+    
+    /*
+     * increment playouts and wins for MCTS
+     */
+    public void increment(int score) {
+        this.playouts += 1;
+        this.wins += score;
+    }
 
     /**
      * @return the score for this Node and its descendents a win is worth 2 points, a draw is worth 1 point.
@@ -96,6 +104,8 @@ public class TicTacToeNode implements Node<TicTacToe> {
                 wins = 1; // a draw.
         }
     }
+    
+    
 
     private final State<TicTacToe> state;
     private final ArrayList<Node<TicTacToe>> children;
