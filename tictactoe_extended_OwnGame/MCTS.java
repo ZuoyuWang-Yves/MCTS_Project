@@ -21,10 +21,12 @@ public class MCTS {
     private final boolean isHumanFirst;
     private final Random random = new Random();
     private final Set<String> expanded = new HashSet<>();
+    private final int mctsPlayer;
 
     public MCTS(Node<ExtendableTicTacToe> root, boolean isHumanFirst) {
         this.root = root;
         this.isHumanFirst = isHumanFirst;
+        this.mctsPlayer = root.state().game().opener();
     }
 
     /** Run N simulations and return the best child */
@@ -57,16 +59,16 @@ public class MCTS {
         }
 
         //Simulation
-        int winner = rollout(node.state());
+        int rolloutScore = rollout(node.state()); 
 
         // Backpropagation
+        
         for (Node<ExtendableTicTacToe> n : path) {
-        	if (n instanceof ETTTNode etn) {
-        		  etn.increment(winner);
-        		} else {
-        		  
-        		  n.backPropagate();
-        		}
+            if (n instanceof ETTTNode etn) {
+                etn.increment(rolloutScore);
+            } else {
+                n.backPropagate();
+            }
         }
     }
 
@@ -101,16 +103,86 @@ public class MCTS {
 
     /** Random play to terminal, return winning player or -1 */
     private int rollout(State<ExtendableTicTacToe> state) {
-        State<ExtendableTicTacToe> cur = state;
+    	State<ExtendableTicTacToe> cur = state;
         int player = cur.player();
         while (!cur.isTerminal()) {
-            List<Move<ExtendableTicTacToe>> moves = new ArrayList<>(cur.moves(player));
+            var moves = new ArrayList<>(cur.moves(player));
             cur = cur.next(moves.get(random.nextInt(moves.size())));
-            player = 1 - player;
+            player= 1 - player;
         }
-        return cur.winner().orElse(-1);
+        // compute classic‐style heuristic before & after
+        int preScore = evaluate(state,   mctsPlayer);
+        int postScore = evaluate(cur,     mctsPlayer);
+        int score = postScore - preScore;
+        // bonus for an outright win
+        if (cur.winner().isPresent() && cur.winner().get() == mctsPlayer) {
+            score += 100;
+        }
+        return score;
     }
+    
+  //mimic weights and formula we experimented in classic ttt
+    private int evaluate(State<ExtendableTicTacToe> s, int player) {
+    	EState st = (EState) s;
+        var pos= st.getPosition();
+        int rowMin = pos.getRowMin(), rowMax = pos.getRowMax();
+        int colMin = pos.getColMin(), colMax = pos.getColMax();
+        
+        int opponent = 1 - player;
+        int score = 0;
 
+        // scan every sliding window (len == 3) in rows
+        for (int r = rowMin; r < rowMax; r++) {
+            for (int c = colMin; c + 2 < colMax; c++) {
+            	int a = pos.get(r,c);
+                int b = pos.get(r,c+1);
+                int d = pos.get(r,c+2);
+                score += twoInARow(new int[]{a, b, d}, player);
+                score -= twoInARow(new int[]{a, b, d}, player)*2;
+            }
+        }
+        // columns
+        for (int c = colMin; c < colMax; c++) {
+            for (int r = rowMin; r + 2 < rowMax; r++) {
+                int[] triple = {pos.get(r,c), pos.get(r+1,c), pos.get(r+2,c)};
+                score += twoInARow(triple, player);
+                score -= twoInARow(triple, opponent) * 2;
+            }
+        }
+        //diagonals \ and /
+        for (int r = rowMin; r + 2 < rowMax; r++) {
+            for (int c = colMin; c + 2 < colMax; c++) {
+                
+                int[] d1 = {pos.get(r,c), pos.get(r+1,c+1), pos.get(r+2,c+2)};
+                
+                int[] d2 = {pos.get(r+2,c), pos.get(r+1,c+1), pos.get(r,c+2)};
+                
+                score += twoInARow(d1, player) + twoInARow(d2, player);
+                score -= 2 * (twoInARow(d1, opponent) + twoInARow(d2, opponent));
+            }
+        }
+
+        //virtual win bonus
+        Optional<Integer> maybeWin = st.winner();
+        if (maybeWin.isPresent()) {
+            int w = maybeWin.get();
+            score += (w == player ? 100 : -100);
+        }
+        
+        return score;
+    }
+    
+    private int twoInARow(int[] line, int player) {
+        int cP = 0, cB = 0;
+        for (int x : line) {
+            if (x == player) cP++;
+            else if (x == -1) cB++;
+        }
+        return (cP == 2 && cB == 1) ? 20 : 0;
+    }
+    
+    
+    
     /** Pick the child with highest win-rate */
     private Node<ExtendableTicTacToe> bestChild(Node<ExtendableTicTacToe> node) {
         return node.children().stream()
@@ -154,7 +226,7 @@ public class MCTS {
         
         
         state.winner().ifPresentOrElse(
-                w -> System.out.println("Winner: " + (w == mctsPlayer ?  "Human": "MCTS" )),
+                w -> System.out.println("Winner: " + (w == mctsPlayer ?   "MCTS" : "Human")),
                 () -> System.out.println("Draw!"));
         System.out.println(state);
     }

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.awt.Point;        
+import java.util.Map;
 
 public class ExtendablePosition {
     private final Cell[][] grid;      // always 9×9
@@ -37,6 +39,19 @@ public class ExtendablePosition {
     public int getColMax() {
         return colMax;
     }
+    public int get(int row, int col) {
+        if (row < rowMin || row >= rowMax    
+         || col < colMin || col >= colMax)  
+            throw new IndexOutOfBoundsException(
+                String.format("(%d,%d) outside [%d..%d)×[%d..%d)", 
+                    row, col, rowMin, rowMax, colMin, colMax));
+        Cell cell = grid[row][col];
+        return switch(cell) {
+            case X -> 1;
+            case O -> 0;
+            default -> -1;  // EMPTY or ZOMBIE
+        };
+    }
     
     /** start in the center 3×3 with all currently unavailable cells as ZOMBIE */
     public static ExtendablePosition start() {
@@ -44,7 +59,7 @@ public class ExtendablePosition {
       for(int r=0;r<MAX;r++)
         for(int c=0;c<MAX;c++)
           g[r][c] = (r>=3&&r<6&&c>=3&&c<6) ? Cell.EMPTY : Cell.ZOMBIE;
-      return new ExtendablePosition(g, /*last*/1, /*count*/0, 3,6,3,6);
+      return new ExtendablePosition(g, /*last*/TicTacToe.O, /*count*/0, 3,6,3,6);
     }
 
     /** list all PlaceMoves with valid ExtendMove's Direction*/
@@ -168,6 +183,18 @@ public class ExtendablePosition {
       Cell[][] dest = new Cell[MAX][MAX];
       for(int i=0;i<MAX;i++) dest[i]=src[i].clone();
       return dest;
+    }
+    
+    public int[][] asArray() {
+        int r0 = getRowMin(), r1 = getRowMax(), c0 = getColMin(), c1 = getColMax();
+        int rows = r1 - r0 + 1, cols = c1 - c0 + 1;
+        int[][] arr = new int[rows][cols];
+        for (int r = r0; r <= r1; r++) {
+            for (int c = c0; c <= c1; c++) {
+                arr[r - r0][c - c0] = get(r, c); 
+            }
+        }
+        return arr;
     }
     
     public String normalize() {
